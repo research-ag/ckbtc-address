@@ -1,0 +1,2 @@
+[dependencies]
+bitcoin = "0.1.1"
