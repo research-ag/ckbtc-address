@@ -127,11 +127,31 @@ func get_deposit_addr(account : { owner : Principal; subaccount : ?Blob}) : Text
   };
 };
 
-// This returns bc1q7ecd9c4vh8efh8v9pyz5jzz2glr22wxvxav7d3 
-// It can be reproduced with https://play.motoko.org/?tag=1890044230
+// The test vectors can be reproduced with https://play.motoko.org/?tag=1890044230
 // by calling get_btc_address() with the same arguments 
-let addr = get_deposit_addr({ 
-  owner = Principal.fromText("2vxsx-fae");
-  subaccount = null
-});
-Debug.print(debug_show addr); 
+do {
+  // deposit for anonymous principal
+  let addr = get_deposit_addr({ 
+    owner = Principal.fromText("2vxsx-fae");
+    subaccount = null
+  });
+  assert addr == "bc1q7ecd9c4vh8efh8v9pyz5jzz2glr22wxvxav7d3";
+};
+
+do {
+  // deposit on DailyBid for anonymous principal
+  let addr = get_deposit_addr({ 
+    owner = Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai");
+    subaccount = ?Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,4]);
+  });
+  assert addr == "bc1q9q0kg90px3w9dadxku2x5pme77plcqxtn535rt";
+};
+
+do {
+  // deposit on DailyBid for seed "a"
+  let addr = get_deposit_addr({ 
+    owner = Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai");
+    subaccount = ?"\00\00\1d\97\5c\fc\3c\d4\70\db\23\17\d4\c9\ef\42\97\10\24\21\88\de\07\e3\f9\da\0e\bc\1d\a4\3b\02";
+  });
+  assert addr == "bc1qvxx6fzd8hzzw070zsd5m0k0eh00593negrvtrj";
+};
