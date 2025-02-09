@@ -116,14 +116,20 @@ let p0 = ExtendedPublicKey(minter_pubkey, minter_chaincode);
 
 // The derivation path for a deposit address is: [1, owner, subaccount]
 // We pre-calculate the first step (1) because it is the same for all
-// paths that we will use
-let p1 = p0.deriveChild("\01");
+// paths that we will use.
+// It can be calculated with
+//  let p1 = p0.deriveChild("\01");
+// but we hard-code it.
+let p1 = ExtendedPublicKey(
+  [2, 244, 91, 146, 204, 204, 82, 220, 134, 205, 58, 38, 113, 226, 123, 209, 79, 168, 185, 214, 96, 230, 138, 178, 22, 3, 127, 129, 212, 213, 141, 42, 132],
+  [84, 48, 87, 99, 118, 33, 11, 96, 35, 146, 171, 214, 48, 96, 129, 229, 150, 109, 161, 223, 19, 78, 85, 143, 62, 60, 82, 204, 67, 28, 82, 232],
+);
 
 // Get the ckBTC minter's deposit address for account
 func get_deposit_addr(account : { owner : Principal; subaccount : ?Blob }) : Text {
   [
     Principal.toBlob(account.owner),
-    Option.get(account.subaccount, "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob)
+    Option.get(account.subaccount, "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob),
   ]
   |> p1.derivePath(_)
   |> _.pubkey_address();
@@ -141,9 +147,15 @@ do {
   |> (assert _ == "bc1q7ecd9c4vh8efh8v9pyz5jzz2glr22wxvxav7d3");
 };
 
-// minter second step derived key for deposits to auction backend
-let p2 = p1.deriveChild(
-  Principal.toBlob(Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai"))
+// Second step derived key for deposits to auction backend
+// It can calculated with
+//   let p2 = p1.deriveChild(
+//     Principal.toBlob(Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai"))
+//   );
+// but we hard-code it.
+let p2 = ExtendedPublicKey(
+  [3, 204, 51, 107, 5, 213, 88, 176, 11, 231, 120, 132, 250, 125, 182, 59, 92, 201, 159, 170, 167, 176, 62, 204, 82, 137, 207, 252, 175, 248, 192, 124, 1],
+  [202, 229, 252, 143, 244, 244, 131, 97, 141, 249, 35, 34, 36, 220, 66, 168, 92, 59, 155, 148, 50, 110, 65, 212, 120, 24, 115, 186, 218, 145, 165, 3],
 );
 
 // functions hard-coded for the auction backend canister (3gvau-pyaaa-aaaao-qa7kq-cai)
@@ -174,6 +186,7 @@ do {
   |> get_user_deposit_addr(Principal.fromText(_))
   |> (assert _ == "bc1q9q0kg90px3w9dadxku2x5pme77plcqxtn535rt");
 };
+
 do {
   "gjcgk-x4xlt-6dzvd-q3mrr-pvgj5-5bjoe-beege-n4b7d-7hna5-pa5uq-5qe"
   |> get_user_deposit_addr(Principal.fromText(_))
