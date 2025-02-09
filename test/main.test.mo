@@ -1,6 +1,8 @@
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Debug "mo:base/Debug";
+import Nat8 "mo:base/Nat8";
+import Option "mo:base/Option";
 import Principal "mo:base/Principal";
 import Common "mo:bitcoin/Common";
 import Segwit "mo:bitcoin/Segwit";
@@ -20,7 +22,7 @@ let minter_chaincode = Blob.toArray("\82\1A\EB\B6\43\BD\97\D3\19\D2\FD\0B\2E\48\
 // The modifications are:
 // - remove unneeded fields depth, index, parentPublicKey
 // - generalize path from [Nat32] to [Blob]
-type Path = [[Nat8]];
+type Path = [Blob];
 let curve : Curves.Curve = Curves.secp256k1;
 
 class ExtendedPublicKey(
@@ -33,33 +35,28 @@ class ExtendedPublicKey(
 
   // Derive a child public key with path relative to this instance. Returns
   // null if path is #text and cannot be parsed.
-  public func derivePath(path : Path) : ?ExtendedPublicKey {
-    return do ? {
-      // Normalize the given path as an array of indices.
-      let pathArray : [[Nat8]] = path;
+  public func derivePath(path : Path) : ExtendedPublicKey {
+    var target : ExtendedPublicKey = ExtendedPublicKey(
+      key,
+      chaincode,
+    );
 
-      var target : ExtendedPublicKey = ExtendedPublicKey(
-        key,
-        chaincode,
-      );
-
-      // Derive the hierarchy of child keys.
-      for (childIndex in pathArray.vals()) {
-        target := target.deriveChild(childIndex)!;
-      };
-      target;
+    // Derive the hierarchy of child keys.
+    for (childIndex in path.vals()) {
+      target := target.deriveChild(childIndex);
     };
+    target;
   };
 
   // Derive child at the given index. Valid indices are blobs.
-  public func deriveChild(index : [Nat8]) : ?ExtendedPublicKey {
+  public func deriveChild(index : Blob) : ExtendedPublicKey {
 
     // Compute HMAC with chaincode as the key and the serialized
     // parentPublicKey (33 bytes) concatenated with the index
     // as its data.
     let hmacData : [var Nat8] = Array.init<Nat8>(33 + index.size(), 0x00);
     Common.copy(hmacData, 0, key, 0, 33);
-    Common.copy(hmacData, 33, index, 0, index.size());
+    Common.copy(hmacData, 33, Blob.toArray(index), 0, index.size());
     let hmacSha512 : Hmac.Hmac = Hmac.sha512(chaincode);
     hmacSha512.writeArray(Array.freeze(hmacData));
     let fullNode : [Nat8] = Blob.toArray(hmacSha512.sum());
@@ -83,21 +80,17 @@ class ExtendedPublicKey(
     let multiplicand : Nat = Common.readBE256(left, 0);
     if (multiplicand >= curve.r) {
       // This has probability lower than 1 in 2^127.
-      return null;
+      Debug.trap("derivation failed");
     };
 
     switch (Jacobi.fromBytes(key, curve)) {
-      case (null) {
-        return null;
-      };
+      case (null) Debug.trap("derivation failed");
       case (?parsedKey) {
         // Derive the child public key.
         switch (Jacobi.add(Jacobi.mulBase(multiplicand, curve), parsedKey)) {
-          case (#infinity(_)) {
-            return null;
-          };
+          case (#infinity(_)) Debug.trap("derivation failed");
           case (childPublicKey) {
-            return ?ExtendedPublicKey(
+            return ExtendedPublicKey(
               Jacobi.toBytes(childPublicKey, true),
               right,
             );
@@ -106,52 +99,83 @@ class ExtendedPublicKey(
       };
     };
   };
+
+  // convert pubkey to a p2wpkh (Segwit) Bitcoin address
+  public func pubkey_address() : Text {
+    switch (Segwit.encode("bc", { version = 0; program = Hash.hash160(key) })) {
+      case (#ok addr) return addr;
+      case (#err e) Debug.trap(e);
+    };
+  };
 };
 
 // Now we can use the modified version
 
+// minter public key
+let p0 = ExtendedPublicKey(minter_pubkey, minter_chaincode);
+
+// The derivation path for a deposit address is: [1, owner, subaccount]
+// We pre-calculate the first step (1) because it is the same for all
+// paths that we will use
+let p1 = p0.deriveChild("\01");
+
 // Get the ckBTC minter's deposit address for account
-func get_deposit_addr(account : { owner : Principal; subaccount : ?Blob}) : Text {
-  let p = ExtendedPublicKey(minter_pubkey, minter_chaincode);
-  let ?k = p.derivePath([
-    [1],
-    Blob.toArray(Principal.toBlob(account.owner)),
-    switch (account.subaccount) {
-      case (?s) Blob.toArray(s);
-      case (_) [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-    }
-  ]) else Debug.trap("derivation failed");
-  switch (Segwit.encode("bc", { version = 0; program = Hash.hash160(k.key)})) {
-    case (#ok addr) return addr;
-    case (#err e) Debug.trap(e);
-  };
+func get_deposit_addr(account : { owner : Principal; subaccount : ?Blob }) : Text {
+  [
+    Principal.toBlob(account.owner),
+    Option.get(account.subaccount, "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob)
+  ]
+  |> p1.derivePath(_)
+  |> _.pubkey_address();
 };
 
 // The test vectors can be reproduced with https://play.motoko.org/?tag=1890044230
-// by calling get_btc_address() with the same arguments 
+// by calling get_btc_address() with the same arguments
 do {
   // deposit for anonymous principal
-  let addr = get_deposit_addr({ 
+  {
     owner = Principal.fromText("2vxsx-fae");
-    subaccount = null
-  });
-  assert addr == "bc1q7ecd9c4vh8efh8v9pyz5jzz2glr22wxvxav7d3";
+    subaccount = null;
+  }
+  |> get_deposit_addr(_)
+  |> (assert _ == "bc1q7ecd9c4vh8efh8v9pyz5jzz2glr22wxvxav7d3");
+};
+
+// minter second step derived key for deposits to auction backend
+let p2 = p1.deriveChild(
+  Principal.toBlob(Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai"))
+);
+
+// functions hard-coded for the auction backend canister (3gvau-pyaaa-aaaao-qa7kq-cai)
+func user_to_subaccount(user : Principal) : Blob {
+  let b = Principal.toBlob(user);
+  let l = b.size();
+  assert l <= 32;
+  let r = Array.init<Nat8>(32, 0);
+  var i : Nat = 32 - l;
+  r[i - 1] := Nat8.fromNat(l);
+  for (v in b.vals()) {
+    r[i] := v;
+    i += 1;
+  };
+  Blob.fromArrayMut(r);
+};
+
+// get deposit address for a user of the auction backend
+func get_user_deposit_addr(user : Principal) : Text {
+  user
+  |> user_to_subaccount(_)
+  |> p2.deriveChild(_)
+  |> _.pubkey_address();
 };
 
 do {
-  // deposit on DailyBid for anonymous principal
-  let addr = get_deposit_addr({ 
-    owner = Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai");
-    subaccount = ?Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,4]);
-  });
-  assert addr == "bc1q9q0kg90px3w9dadxku2x5pme77plcqxtn535rt";
+  "2vxsx-fae"
+  |> get_user_deposit_addr(Principal.fromText(_))
+  |> (assert _ == "bc1q9q0kg90px3w9dadxku2x5pme77plcqxtn535rt");
 };
-
 do {
-  // deposit on DailyBid for seed "a"
-  let addr = get_deposit_addr({ 
-    owner = Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai");
-    subaccount = ?"\00\00\1d\97\5c\fc\3c\d4\70\db\23\17\d4\c9\ef\42\97\10\24\21\88\de\07\e3\f9\da\0e\bc\1d\a4\3b\02";
-  });
-  assert addr == "bc1qvxx6fzd8hzzw070zsd5m0k0eh00593negrvtrj";
+  "gjcgk-x4xlt-6dzvd-q3mrr-pvgj5-5bjoe-beege-n4b7d-7hna5-pa5uq-5qe"
+  |> get_user_deposit_addr(Principal.fromText(_))
+  |> (assert _ == "bc1qvxx6fzd8hzzw070zsd5m0k0eh00593negrvtrj");
 };
