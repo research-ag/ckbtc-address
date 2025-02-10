@@ -1,2 +1,12 @@
+[package]
+name = "ckbtc-address"
+version = "0.0.0"
+description = "An algorithm which calculates BTC address for deposits to ckBTC minter"
+repository = "https://github.com/research-ag/ckbtc-address"
+
 [dependencies]
+base = "0.13.6"
 bitcoin = "0.1.1"
+
+[toolchain]
+moc = "0.13.6"
