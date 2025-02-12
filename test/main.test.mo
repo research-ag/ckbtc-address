@@ -5,12 +5,11 @@ import Principal "mo:base/Principal";
 
 import CkBTCAddress "../src";
 
-let addr = CkBTCAddress.CkBTCAddress(Principal.fromText("mqygn-kiaaa-aaaar-qaadq-cai"));
 // hardcoded keys for ckBtc minter canister
-addr.setKeys(
-  "\02\22\04\7A\81\D4\F8\A0\67\03\1C\89\27\3D\24\1B\79\A5\A0\07\C0\4D\FA\F3\6D\07\96\3D\B0\B9\90\97\EB",
-  "\82\1A\EB\B6\43\BD\97\D3\19\D2\FD\0B\2E\48\3D\4E\7D\E2\EA\90\39\FF\67\56\8B\69\3E\6A\BC\14\A0\3B",
-);
+let minter = CkBTCAddress.Minter({
+  public_key = "\02\22\04\7A\81\D4\F8\A0\67\03\1C\89\27\3D\24\1B\79\A5\A0\07\C0\4D\FA\F3\6D\07\96\3D\B0\B9\90\97\EB";
+  chain_code = "\82\1A\EB\B6\43\BD\97\D3\19\D2\FD\0B\2E\48\3D\4E\7D\E2\EA\90\39\FF\67\56\8B\69\3E\6A\BC\14\A0\3B";
+});
 
 func user_to_subaccount(user : Principal) : Blob {
   let b = Principal.toBlob(user);
@@ -30,7 +29,7 @@ func user_to_subaccount(user : Principal) : Blob {
 func get_user_deposit_addr_3gvau(user : Principal) : Text {
   user
   |> user_to_subaccount(_)
-  |> addr.get_deposit_addr({
+  |> minter.deposit_addr({
     owner = Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai");
     subaccount = ?_;
   });
@@ -38,7 +37,7 @@ func get_user_deposit_addr_3gvau(user : Principal) : Text {
 func get_user_deposit_addr_farwr(user : Principal) : Text {
   user
   |> user_to_subaccount(_)
-  |> addr.get_deposit_addr({
+  |> minter.deposit_addr({
     owner = Principal.fromText("farwr-jqaaa-aaaao-qj4ya-cai");
     subaccount = ?_;
   });
