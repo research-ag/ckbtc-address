@@ -26,49 +26,45 @@ func user_to_subaccount(user : Principal) : Blob {
 };
 
 // get deposit address for a user of the auction backend
-func get_user_deposit_addr_3gvau(user : Principal) : Text {
-  user
-  |> user_to_subaccount(_)
-  |> minter.deposit_addr({
-    owner = Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai");
-    subaccount = ?_;
-  });
-};
-func get_user_deposit_addr_farwr(user : Principal) : Text {
-  user
-  |> user_to_subaccount(_)
-  |> minter.deposit_addr({
-    owner = Principal.fromText("farwr-jqaaa-aaaao-qj4ya-cai");
-    subaccount = ?_;
-  });
-};
+let f_3gvau = minter.deposit_addr_func(Principal.fromText("3gvau-pyaaa-aaaao-qa7kq-cai"));
+let f_farwr = minter.deposit_addr_func(Principal.fromText("farwr-jqaaa-aaaao-qj4ya-cai"));
 
 do {
   "2vxsx-fae"
-  |> get_user_deposit_addr_3gvau(Principal.fromText(_))
+  |> Principal.fromText(_)
+  |> user_to_subaccount(_)
+  |> f_3gvau(?_)
   |> (assert _ == "bc1q9q0kg90px3w9dadxku2x5pme77plcqxtn535rt");
 };
 
 do {
   "gjcgk-x4xlt-6dzvd-q3mrr-pvgj5-5bjoe-beege-n4b7d-7hna5-pa5uq-5qe"
-  |> get_user_deposit_addr_3gvau(Principal.fromText(_))
+  |> Principal.fromText(_)
+  |> user_to_subaccount(_)
+  |> f_3gvau(?_)
   |> (assert _ == "bc1qvxx6fzd8hzzw070zsd5m0k0eh00593negrvtrj");
 };
 
 do {
   "2vxsx-fae"
-  |> get_user_deposit_addr_farwr(Principal.fromText(_))
+  |> Principal.fromText(_)
+  |> user_to_subaccount(_)
+  |> f_farwr(?_)
   |> (assert _ == "bc1q7grqgee386r6qf74srt4h0s69cvkav7kgup4l7");
 };
 
 do {
   "mgqao-xam3j-a3ruc-umodo-tnifj-sszm7-7lilh-aibsy-2u7uz-gwph7-jae" // seed "qre"
-  |> get_user_deposit_addr_farwr(Principal.fromText(_))
+  |> Principal.fromText(_)
+  |> user_to_subaccount(_)
+  |> f_farwr(?_)
   |> (assert _ == "bc1qpamdxt8rx5lr256dq7u4dnua02tlrdwyeerzwx");
 };
 
 do {
   "rl3fy-hyflm-6r3qg-7nid5-lr6cp-ysfwh-xiqme-stgsq-bcga5-vnztf-mqe" // seed "123qwe"
-  |> get_user_deposit_addr_farwr(Principal.fromText(_))
+  |> Principal.fromText(_)
+  |> user_to_subaccount(_)
+  |> f_farwr(?_)
   |> (assert _ == "bc1qxzlu00s4k83ts763s57xz89n3tnwfm3q6z3pt8");
 };

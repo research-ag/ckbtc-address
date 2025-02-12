@@ -30,6 +30,15 @@ module {
       |> pk.derivePath(_)
       |> _.pubkey_address();
     };
+
+    public func deposit_addr_func(owner : Principal) : ?Blob -> Text {
+      let p1 = pk.deriveChild(Principal.toBlob(owner));
+      func (subaccount : ?Blob) : Text {
+        Option.get(subaccount, "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob)
+        |> p1.deriveChild(_)
+        |> _.pubkey_address();
+      };
+    };
   };
 
   // Fetch a canister's master ECDSA xpubkey
