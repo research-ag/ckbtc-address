@@ -15,7 +15,7 @@ addr.setKeys(
 func user_to_subaccount(user : Principal) : Blob {
   let b = Principal.toBlob(user);
   let l = b.size();
-  assert l <= 32;
+  assert l <= 31;
   let r = Array.init<Nat8>(32, 0);
   var i : Nat = 32 - l;
   r[i - 1] := Nat8.fromNat(l);
