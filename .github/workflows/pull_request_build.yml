@@ -11,9 +11,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Node
-        uses: actions/setup-node@v4
-
       - name: Install mops
         uses: ZenVoich/setup-mops@v1
 
