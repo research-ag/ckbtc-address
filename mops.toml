@@ -3,6 +3,8 @@ name = "ckbtc-address"
 version = "0.0.1"
 description = "An algorithm which calculates BTC address for deposits to ckBTC minter"
 repository = "https://github.com/research-ag/ckbtc-address"
+keywords = [ "bitcoin", "key derivation", "bip32", "ckbtc", "minter" ]
+license = "MIT"
 
 [dependencies]
 base = "0.13.6"
