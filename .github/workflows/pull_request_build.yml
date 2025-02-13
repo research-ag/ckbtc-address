@@ -1,0 +1,32 @@
+name: App build
+on:
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review, unlabeled]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install mops
+        uses: ZenVoich/setup-mops@v1
+
+      - name: Install dfx
+        uses: dfinity/setup-dfx@main
+
+      - name: Make sure moc is installed
+        run: mops toolchain bin moc || mops toolchain use moc latest
+
+      - name: Show mops version
+        run: |
+          mops --version
+          $(mops toolchain bin moc) --version
+
+      - name: Run tests
+        run: mops test
+
+      - name: Run mops bench
+        run: mops bench
