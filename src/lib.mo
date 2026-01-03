@@ -1,6 +1,7 @@
-import Blob "mo:base/Blob";
-import Option "mo:base/Option";
-import Principal "mo:base/Principal";
+import Blob "mo:core/Blob";
+import Option "mo:core/Option";
+import Principal "mo:core/Principal";
+
 import Bip32 "bip32";
 import IC "ic";
 
@@ -19,12 +20,12 @@ module {
   // Initialize with the minter's xpubkey 
   // The application can either hard-code this key or can use the helper function `fetchEcdsaKey` below
   public class Minter(key : XPubKey) {
-    let pk = Bip32.ExtendedPublicKey(Blob.toArray(key.public_key), Blob.toArray(key.chain_code)).deriveChild("\01");
+    let pk = Bip32.ExtendedPublicKey(key.public_key.toArray(), key.chain_code.toArray()).deriveChild("\01");
 
     // Calculate BTC deposit address for ICRC-1 account
     public func deposit_addr(account : Account) : Text {
       [
-        Principal.toBlob(account.owner),
+        account.owner.toBlob(),
         Option.get(account.subaccount, "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob),
       ]
       |> pk.derivePath(_)
@@ -32,7 +33,7 @@ module {
     };
 
     public func deposit_addr_func(owner : Principal) : ?Blob -> Text {
-      let p1 = pk.deriveChild(Principal.toBlob(owner));
+      let p1 = pk.deriveChild(owner.toBlob());
       func (subaccount : ?Blob) : Text {
         Option.get(subaccount, "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob)
         |> p1.deriveChild(_)

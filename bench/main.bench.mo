@@ -1,8 +1,8 @@
-import Array "mo:base/Array";
-import Blob "mo:base/Blob";
-import Nat8 "mo:base/Nat8";
+import Blob "mo:core/Blob";
+import Nat8 "mo:core/Nat8";
 import Prim "mo:prim";
-import Principal "mo:base/Principal";
+import Principal "mo:core/Principal";
+import VarArray "mo:core/VarArray";
 
 import Bench "mo:bench";
 
@@ -24,7 +24,7 @@ module {
     });
 
     let owner : Principal = Principal.fromText("s7rux-5qw2w-h6o7j-dhwoh-xq4l2-xgl53-satjs-2eqwz-xgeex-a2vp2-yqe");
-    let sa : ?Blob = ?Blob.fromArray(Array.tabulate<Nat8>(32, func(n) = Nat8.fromIntWrap(n)));
+    let sa : ?Blob = ?Blob.fromVarArray(VarArray.tabulate(32, func(n) = Nat8.fromIntWrap(n)));
 
     let subaccountAddressFunc = addr.deposit_addr_func(owner);
 

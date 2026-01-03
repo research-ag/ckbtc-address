@@ -7,11 +7,15 @@ keywords = [ "bitcoin", "key-derivation", "bip32", "ckbtc", "minter" ]
 license = "MIT"
 
 [dependencies]
-base = "0.14.1"
 bitcoin = "0.1.1"
+core = "2.0.0"
 
 [dev-dependencies]
 bench = "1.0.0"
 
 [toolchain]
-moc = "0.13.5"
+moc = "1.0.0"
+wasmtime = "40.0.0"
+
+[requirements]
+moc = "1.0.0"

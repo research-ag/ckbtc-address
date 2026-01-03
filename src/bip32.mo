@@ -1,14 +1,14 @@
-import Array "mo:base/Array";
-import Blob "mo:base/Blob";
-import Debug "mo:base/Debug";
-import Nat8 "mo:base/Nat8";
+import Array "mo:core/Array";
+import Blob "mo:core/Blob";
+import Runtime "mo:core/Runtime";
+import VarArray "mo:core/VarArray";
 
 import Common "mo:bitcoin/Common";
-import Segwit "mo:bitcoin/Segwit";
-import Hmac "mo:bitcoin/Hmac";
-import Hash "mo:bitcoin/Hash";
 import Curves "mo:bitcoin/ec/Curves";
+import Hash "mo:bitcoin/Hash";
+import Hmac "mo:bitcoin/Hmac";
 import Jacobi "mo:bitcoin/ec/Jacobi";
+import Segwit "mo:bitcoin/Segwit";
 
 // The module contains a modified version of the class ExtendedPublicKey
 // from https://github.com/dfinity/motoko-bitcoin/blob/main/src/Bip32.mo
@@ -49,41 +49,31 @@ module {
       // Compute HMAC with chaincode as the key and the serialized
       // parentPublicKey (33 bytes) concatenated with the index
       // as its data.
-      let hmacData : [var Nat8] = Array.init<Nat8>(33 + index.size(), 0x00);
+      let hmacData : [var Nat8] = VarArray.repeat(0x00 : Nat8, 33 + index.size());
       Common.copy(hmacData, 0, key, 0, 33);
-      Common.copy(hmacData, 33, Blob.toArray(index), 0, index.size());
+      Common.copy(hmacData, 33, index.toArray(), 0, index.size());
       let hmacSha512 : Hmac.Hmac = Hmac.sha512(chaincode);
-      hmacSha512.writeArray(Array.freeze(hmacData));
+      hmacSha512.writeArray(hmacData.toArray());
       let fullNode : [Nat8] = Blob.toArray(hmacSha512.sum());
 
       // Split HMAC output into two 32-byte sequences.
-      let left : [Nat8] = Array.tabulate<Nat8>(
-        32,
-        func(i) {
-          fullNode[i];
-        },
-      );
-      let right : [Nat8] = Array.tabulate<Nat8>(
-        32,
-        func(i) {
-          fullNode[i + 32];
-        },
-      );
+      let left : [Nat8] = Array.tabulate(32, func(i) { fullNode[i] });
+      let right : [Nat8] = Array.tabulate(32, func(i) { fullNode[i + 32] });
 
       // Parse the left 32-bytes as an integer in the domain parameters of
       // secp2secp256k1 curve.
       let multiplicand : Nat = Common.readBE256(left, 0);
       if (multiplicand >= curve.r) {
         // This has probability lower than 1 in 2^127.
-        Debug.trap("derivation failed");
+        Runtime.trap("derivation failed");
       };
 
       switch (Jacobi.fromBytes(key, curve)) {
-        case (null) Debug.trap("derivation failed");
+        case (null) Runtime.trap("derivation failed");
         case (?parsedKey) {
           // Derive the child public key.
           switch (Jacobi.add(Jacobi.mulBase(multiplicand, curve), parsedKey)) {
-            case (#infinity(_)) Debug.trap("derivation failed");
+            case (#infinity(_)) Runtime.trap("derivation failed");
             case (childPublicKey) {
               return ExtendedPublicKey(
                 Jacobi.toBytes(childPublicKey, true),
@@ -99,7 +89,7 @@ module {
     public func pubkey_address() : Text {
       switch (Segwit.encode("bc", { version = 0; program = Hash.hash160(key) })) {
         case (#ok addr) return addr;
-        case (#err e) Debug.trap(e);
+        case (#err e) Runtime.trap(e);
       };
     };
   };
