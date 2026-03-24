@@ -1,6 +1,6 @@
-import Blob "mo:base/Blob";
-import Option "mo:base/Option";
-import Principal "mo:base/Principal";
+import Blob "mo:core/Blob";
+import Option "mo:core/Option";
+import Principal "mo:core/Principal";
 import Bip32 "bip32";
 import IC "ic";
 
@@ -16,7 +16,7 @@ module {
     subaccount : ?Blob;
   };
 
-  // Initialize with the minter's xpubkey 
+  // Initialize with the minter's xpubkey
   // The application can either hard-code this key or can use the helper function `fetchEcdsaKey` below
   public class Minter(key : XPubKey) {
     let pk = Bip32.ExtendedPublicKey(Blob.toArray(key.public_key), Blob.toArray(key.chain_code)).deriveChild("\01");
@@ -31,6 +31,9 @@ module {
       |> _.pubkey_address();
     };
 
+    // Style-friendly camelCase alias (kept alongside original for compatibility)
+    public func depositAddr(account : Account) : Text { deposit_addr(account) };
+
     public func deposit_addr_func(owner : Principal) : ?Blob -> Text {
       let p1 = pk.deriveChild(Principal.toBlob(owner));
       func (subaccount : ?Blob) : Text {
@@ -39,6 +42,9 @@ module {
         |> _.pubkey_address();
       };
     };
+
+    // Style-friendly camelCase alias (kept alongside original for compatibility)
+    public func depositAddrFunc(owner : Principal) : ?Blob -> Text { deposit_addr_func(owner) };
   };
 
   // Fetch a canister's master ECDSA xpubkey

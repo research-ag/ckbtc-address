@@ -1,7 +1,8 @@
-import Array "mo:base/Array";
-import Blob "mo:base/Blob";
-import Debug "mo:base/Debug";
-import Nat8 "mo:base/Nat8";
+import Array "mo:core/Array";
+import Blob "mo:core/Blob";
+import VarArray "mo:core/VarArray";
+import Runtime "mo:core/Runtime";
+import Nat8 "mo:core/Nat8";
 
 import Common "mo:bitcoin/Common";
 import Segwit "mo:bitcoin/Segwit";
@@ -49,11 +50,12 @@ module {
       // Compute HMAC with chaincode as the key and the serialized
       // parentPublicKey (33 bytes) concatenated with the index
       // as its data.
-      let hmacData : [var Nat8] = Array.init<Nat8>(33 + index.size(), 0x00);
-      Common.copy(hmacData, 0, key, 0, 33);
-      Common.copy(hmacData, 33, Blob.toArray(index), 0, index.size());
+      let indexArr : [Nat8] = Blob.toArray(index);
+      let hmacData : [Nat8] = Array.tabulate<Nat8>(33 + index.size(), func(i) {
+        if (i < 33) { key[i] } else { indexArr[i - 33] }
+      });
       let hmacSha512 : Hmac.Hmac = Hmac.sha512(chaincode);
-      hmacSha512.writeArray(Array.freeze(hmacData));
+      hmacSha512.writeArray(hmacData);
       let fullNode : [Nat8] = Blob.toArray(hmacSha512.sum());
 
       // Split HMAC output into two 32-byte sequences.
@@ -75,15 +77,15 @@ module {
       let multiplicand : Nat = Common.readBE256(left, 0);
       if (multiplicand >= curve.r) {
         // This has probability lower than 1 in 2^127.
-        Debug.trap("derivation failed");
+        Runtime.trap("derivation failed");
       };
 
       switch (Jacobi.fromBytes(key, curve)) {
-        case (null) Debug.trap("derivation failed");
+        case (null) Runtime.trap("derivation failed");
         case (?parsedKey) {
           // Derive the child public key.
           switch (Jacobi.add(Jacobi.mulBase(multiplicand, curve), parsedKey)) {
-            case (#infinity(_)) Debug.trap("derivation failed");
+            case (#infinity(_)) Runtime.trap("derivation failed");
             case (childPublicKey) {
               return ExtendedPublicKey(
                 Jacobi.toBytes(childPublicKey, true),
@@ -99,7 +101,7 @@ module {
     public func pubkey_address() : Text {
       switch (Segwit.encode("bc", { version = 0; program = Hash.hash160(key) })) {
         case (#ok addr) return addr;
-        case (#err e) Debug.trap(e);
+        case (#err e) Runtime.trap(e);
       };
     };
   };

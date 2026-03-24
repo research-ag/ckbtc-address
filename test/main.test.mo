@@ -1,7 +1,8 @@
-import Array "mo:base/Array";
-import Blob "mo:base/Blob";
-import Nat8 "mo:base/Nat8";
-import Principal "mo:base/Principal";
+import Array "mo:core/Array";
+import Blob "mo:core/Blob";
+import VarArray "mo:core/VarArray";
+import Nat8 "mo:core/Nat8";
+import Principal "mo:core/Principal";
 
 import CkBTCAddress "../src";
 
@@ -15,14 +16,14 @@ func user_to_subaccount(user : Principal) : Blob {
   let b = Principal.toBlob(user);
   let l = b.size();
   assert l <= 31;
-  let r = Array.init<Nat8>(32, 0);
+  let r = VarArray.repeat<Nat8>(0, 32);
   var i : Nat = 32 - l;
   r[i - 1] := Nat8.fromNat(l);
   for (v in b.vals()) {
     r[i] := v;
     i += 1;
   };
-  Blob.fromArrayMut(r);
+  Blob.fromVarArray(r);
 };
 
 // get deposit address for a user of the auction backend

@@ -1,3 +1,6 @@
+import Blob "mo:core/Blob";
+import Principal "mo:core/Principal";
+
 module {
   public type ecdsa_public_key_args = {
     canister_id : ?Principal;
@@ -13,4 +16,4 @@ module {
   public let mgmt : actor {
     ecdsa_public_key : ecdsa_public_key_args -> async ecdsa_public_key_result;
   } = actor "aaaaa-aa";
-}
+};
