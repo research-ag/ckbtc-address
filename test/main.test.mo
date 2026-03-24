@@ -12,7 +12,7 @@ let minter = CkBTCAddress.Minter({
 });
 
 func user_to_subaccount(user : Principal) : Blob {
-  let b = Principal.toBlob(user);
+  let b = user.toBlob();
   let l = b.size();
   assert l <= 31;
   let r = VarArray.repeat<Nat8>(0, 32);

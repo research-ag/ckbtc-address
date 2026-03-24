@@ -55,18 +55,8 @@ module {
       let fullNode : [Nat8] = Blob.toArray(hmacSha512.sum());
 
       // Split HMAC output into two 32-byte sequences.
-      let left : [Nat8] = Array.tabulate<Nat8>(
-        32,
-        func(i) {
-          fullNode[i];
-        },
-      );
-      let right : [Nat8] = Array.tabulate<Nat8>(
-        32,
-        func(i) {
-          fullNode[i + 32];
-        },
-      );
+      let left = fullNode.sliceToArray(0, 32);
+      let right = fullNode.sliceToArray(32, 64);
 
       // Parse the left 32-bytes as an integer in the domain parameters of
       // secp2secp256k1 curve.
