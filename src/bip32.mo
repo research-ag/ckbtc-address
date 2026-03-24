@@ -49,15 +49,9 @@ module {
       // Compute HMAC with chaincode as the key and the serialized
       // parentPublicKey (33 bytes) concatenated with the index
       // as its data.
-      let indexArr : [Nat8] = Blob.toArray(index);
-      let hmacData : [Nat8] = Array.tabulate<Nat8>(
-        33 + index.size(),
-        func(i) {
-          if (i < 33) { key[i] } else { indexArr[i - 33] };
-        },
-      );
       let hmacSha512 : Hmac.Hmac = Hmac.sha512(chaincode);
-      hmacSha512.writeArray(hmacData);
+      hmacSha512.writeArray(key);
+      hmacSha512.writeArray(index.toArray());
       let fullNode : [Nat8] = Blob.toArray(hmacSha512.sum());
 
       // Split HMAC output into two 32-byte sequences.
