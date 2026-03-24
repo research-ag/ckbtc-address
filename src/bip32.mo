@@ -97,12 +97,15 @@ module {
       };
     };
 
-    // convert pubkey to a P2WPKh (Segwit) Bitcoin address
-    public func pubkey_address() : Text {
+    // convert pubkey to a P2WPKh (Segwit) Bitcoin address (camelCase preferred by style guide)
+    public func pubkeyAddress() : Text {
       switch (Segwit.encode("bc", { version = 0; program = Hash.hash160(key) })) {
         case (#ok addr) return addr;
         case (#err e) Runtime.trap(e);
       };
     };
+
+    // Backward-compatible snake_case alias
+    public func pubkey_address() : Text { pubkeyAddress() };
   };
 };
