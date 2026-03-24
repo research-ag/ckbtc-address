@@ -1,14 +1,14 @@
 import Array "mo:core/Array";
 import Blob "mo:core/Blob";
-import Runtime "mo:core/Runtime";
 import Nat8 "mo:core/Nat8";
+import Runtime "mo:core/Runtime";
 
 import Common "mo:bitcoin/Common";
-import Segwit "mo:bitcoin/Segwit";
-import Hmac "mo:bitcoin/Hmac";
-import Hash "mo:bitcoin/Hash";
 import Curves "mo:bitcoin/ec/Curves";
+import Hash "mo:bitcoin/Hash";
+import Hmac "mo:bitcoin/Hmac";
 import Jacobi "mo:bitcoin/ec/Jacobi";
+import Segwit "mo:bitcoin/Segwit";
 
 // The module contains a modified version of the class ExtendedPublicKey
 // from https://github.com/dfinity/motoko-bitcoin/blob/main/src/Bip32.mo

@@ -1,7 +1,7 @@
 import Blob "mo:core/Blob";
-import VarArray "mo:core/VarArray";
 import Nat8 "mo:core/Nat8";
 import Principal "mo:core/Principal";
+import VarArray "mo:core/VarArray";
 
 import CkBTCAddress "../src";
 
