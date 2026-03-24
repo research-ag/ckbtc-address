@@ -21,7 +21,7 @@ module {
   public class Minter(key : XPubKey) {
     let pk = Bip32.ExtendedPublicKey(Blob.toArray(key.public_key), Blob.toArray(key.chain_code)).deriveChild("\01");
 
-    // Calculate BTC deposit address for ICRC-1 account (camelCase preferred)
+    // Calculate BTC deposit address for ICRC-1 account
     public func deposit_addr(account : Account) : Text {
       [
         Principal.toBlob(account.owner),
