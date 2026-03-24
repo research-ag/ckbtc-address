@@ -52,7 +52,7 @@ module {
       let hmacSha512 : Hmac.Hmac = Hmac.sha512(chaincode);
       hmacSha512.writeArray(key);
       hmacSha512.writeArray(index.toArray());
-      let fullNode : [Nat8] = Blob.toArray(hmacSha512.sum());
+      let fullNode : [Nat8] = hmacSha512.sum().toArray();
 
       // Split HMAC output into two 32-byte sequences.
       let left = fullNode.sliceToArray(0, 32);
