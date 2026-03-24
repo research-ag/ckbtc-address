@@ -1,6 +1,5 @@
 import Array "mo:core/Array";
 import Blob "mo:core/Blob";
-import VarArray "mo:core/VarArray";
 import Runtime "mo:core/Runtime";
 import Nat8 "mo:core/Nat8";
 
@@ -51,9 +50,12 @@ module {
       // parentPublicKey (33 bytes) concatenated with the index
       // as its data.
       let indexArr : [Nat8] = Blob.toArray(index);
-      let hmacData : [Nat8] = Array.tabulate<Nat8>(33 + index.size(), func(i) {
-        if (i < 33) { key[i] } else { indexArr[i - 33] }
-      });
+      let hmacData : [Nat8] = Array.tabulate<Nat8>(
+        33 + index.size(),
+        func(i) {
+          if (i < 33) { key[i] } else { indexArr[i - 33] };
+        },
+      );
       let hmacSha512 : Hmac.Hmac = Hmac.sha512(chaincode);
       hmacSha512.writeArray(hmacData);
       let fullNode : [Nat8] = Blob.toArray(hmacSha512.sum());
@@ -98,14 +100,11 @@ module {
     };
 
     // convert pubkey to a P2WPKh (Segwit) Bitcoin address (camelCase preferred by style guide)
-    public func pubkeyAddress() : Text {
+    public func pubkey_address() : Text {
       switch (Segwit.encode("bc", { version = 0; program = Hash.hash160(key) })) {
         case (#ok addr) return addr;
         case (#err e) Runtime.trap(e);
       };
     };
-
-    // Backward-compatible snake_case alias
-    public func pubkey_address() : Text { pubkeyAddress() };
   };
 };
