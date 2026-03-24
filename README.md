@@ -52,7 +52,7 @@ let account = {
     subaccount = null;  // Optional subaccount
 };
 
-let depositAddress = minter.deposit_addr(account);
+let depositAddress = minter.depositAddr(account);
 ```
 
 Alternatively, using a function-based approach:

@@ -5,7 +5,7 @@ description = "An algorithm which calculates BTC address for deposits to ckBTC m
 repository = "https://github.com/research-ag/ckbtc-address"
 
 [dependencies]
-base = "0.13.6"
+core = "2.3.1"
 bitcoin = "0.1.1"
 
 [dev-dependencies]
@@ -13,4 +13,4 @@ test = "2.0.0"
 bench = "1.0.0"
 
 [toolchain]
-moc = "0.13.6"
+moc = "1.3.0"
