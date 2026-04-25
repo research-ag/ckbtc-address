@@ -16,3 +16,4 @@ bench-helper = "0.0.3"
 
 [toolchain]
 moc = "1.6.0"
+pocket-ic = "9.0.3"
