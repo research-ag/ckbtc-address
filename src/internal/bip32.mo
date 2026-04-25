@@ -1,3 +1,11 @@
+/// Modified BIP32 public-key derivation used internally by the ckBTC
+/// address module.
+///
+/// Adapted from `motoko-bitcoin`'s `Bip32.ExtendedPublicKey` with two
+/// changes: unused fields (`depth`, `index`, `parentPublicKey`) are
+/// removed, and derivation indices are arbitrary `Blob`s instead of
+/// 32-bit integers — matching the ckBTC minter's derivation scheme.
+
 import Array "mo:core/Array";
 import Blob "mo:core/Blob";
 import Nat8 "mo:core/Nat8";
@@ -10,26 +18,26 @@ import Hmac "mo:bitcoin/Hmac";
 import Jacobi "mo:bitcoin/ec/Jacobi";
 import Segwit "mo:bitcoin/Segwit";
 
-// The module contains a modified version of the class ExtendedPublicKey
-// from https://github.com/dfinity/motoko-bitcoin/blob/main/src/Bip32.mo
-// The modifications are:
-// - remove unneeded fields depth, index, parentPublicKey
-// - generalize path from [Nat32] to [Blob]
 module {
 
+  /// A BIP32 derivation path: a sequence of arbitrary-length byte indices.
   public type Path = [Blob];
   let curve : Curves.Curve = Curves.secp256k1;
 
+  /// secp256k1 extended public key: 33-byte SEC1-compressed point `key`
+  /// plus 32-byte BIP32 `chaincode`.
   public class ExtendedPublicKey(
     _key : [Nat8],
     _chaincode : [Nat8],
   ) {
 
+    /// 33-byte SEC1-compressed secp256k1 public key.
     public let key = _key;
+    /// 32-byte BIP32 chain code.
     public let chaincode = _chaincode;
 
-    // Derive a child public key with path relative to this instance. Returns
-    // null if path is #text and cannot be parsed.
+    /// Derive the child key obtained by applying every index in `path` in
+    /// order. Equivalent to repeated `deriveChild` calls.
     public func derivePath(path : Path) : ExtendedPublicKey {
       var target : ExtendedPublicKey = ExtendedPublicKey(
         key,
@@ -43,7 +51,10 @@ module {
       target;
     };
 
-    // Derive child at the given index. Valid indices are blobs.
+    /// Derive a single child key at the given byte-string `index`. Traps
+    /// (with probability < 2^-127) if the resulting scalar is invalid or
+    /// the resulting point is the point at infinity, or if `key` is not a
+    /// valid secp256k1 point.
     public func deriveChild(index : Blob) : ExtendedPublicKey {
 
       // Compute HMAC with chaincode as the key and the serialized
@@ -83,7 +94,8 @@ module {
       };
     };
 
-    // convert pubkey to a P2WPKh (Segwit) Bitcoin address
+    /// Encode `key` as a mainnet P2WPKH (SegWit v0) Bitcoin address with
+    /// HRP `"bc"` (Bech32).
     public func pubkey_address() : Text {
       switch (Segwit.encode("bc", { version = 0; program = Hash.hash160(key) })) {
         case (#ok addr) return addr;
