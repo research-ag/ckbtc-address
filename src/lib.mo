@@ -2,8 +2,8 @@ import Blob "mo:core/Blob";
 import Option "mo:core/Option";
 import Principal "mo:core/Principal";
 
-import Bip32 "bip32";
-import IC "ic";
+import Bip32 "internal/bip32";
+import IC "internal/ic";
 
 module {
   public type XPubKey = {
