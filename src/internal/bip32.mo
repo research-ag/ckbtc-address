@@ -1,35 +1,43 @@
-import Array "mo:base/Array";
-import Blob "mo:base/Blob";
-import Debug "mo:base/Debug";
-import Nat8 "mo:base/Nat8";
+/// Modified BIP32 public-key derivation used internally by the ckBTC
+/// address module.
+///
+/// Adapted from `motoko-bitcoin`'s `Bip32.ExtendedPublicKey` with two
+/// changes: unused fields (`depth`, `index`, `parentPublicKey`) are
+/// removed, and derivation indices are arbitrary `Blob`s instead of
+/// 32-bit integers — matching the ckBTC minter's derivation scheme.
+
+import Array "mo:core/Array";
+import Blob "mo:core/Blob";
+import Nat8 "mo:core/Nat8";
+import Runtime "mo:core/Runtime";
 
 import Common "mo:bitcoin/Common";
-import Segwit "mo:bitcoin/Segwit";
-import Hmac "mo:bitcoin/Hmac";
-import Hash "mo:bitcoin/Hash";
 import Curves "mo:bitcoin/ec/Curves";
+import Hash "mo:bitcoin/Hash";
+import Hmac "mo:bitcoin/Hmac";
 import Jacobi "mo:bitcoin/ec/Jacobi";
+import Segwit "mo:bitcoin/Segwit";
 
-// The module contains a modified version of the class ExtendedPublicKey
-// from https://github.com/dfinity/motoko-bitcoin/blob/main/src/Bip32.mo
-// The modifications are:
-// - remove unneeded fields depth, index, parentPublicKey
-// - generalize path from [Nat32] to [Blob]
 module {
 
+  /// A BIP32 derivation path: a sequence of arbitrary-length byte indices.
   public type Path = [Blob];
   let curve : Curves.Curve = Curves.secp256k1;
 
+  /// secp256k1 extended public key: 33-byte SEC1-compressed point `key`
+  /// plus 32-byte BIP32 `chaincode`.
   public class ExtendedPublicKey(
     _key : [Nat8],
     _chaincode : [Nat8],
   ) {
 
+    /// 33-byte SEC1-compressed secp256k1 public key.
     public let key = _key;
+    /// 32-byte BIP32 chain code.
     public let chaincode = _chaincode;
 
-    // Derive a child public key with path relative to this instance. Returns
-    // null if path is #text and cannot be parsed.
+    /// Derive the child key obtained by applying every index in `path` in
+    /// order. Equivalent to repeated `deriveChild` calls.
     public func derivePath(path : Path) : ExtendedPublicKey {
       var target : ExtendedPublicKey = ExtendedPublicKey(
         key,
@@ -43,47 +51,38 @@ module {
       target;
     };
 
-    // Derive child at the given index. Valid indices are blobs.
+    /// Derive a single child key at the given byte-string `index`. Traps
+    /// (with probability < 2^-127) if the resulting scalar is invalid or
+    /// the resulting point is the point at infinity, or if `key` is not a
+    /// valid secp256k1 point.
     public func deriveChild(index : Blob) : ExtendedPublicKey {
 
       // Compute HMAC with chaincode as the key and the serialized
       // parentPublicKey (33 bytes) concatenated with the index
       // as its data.
-      let hmacData : [var Nat8] = Array.init<Nat8>(33 + index.size(), 0x00);
-      Common.copy(hmacData, 0, key, 0, 33);
-      Common.copy(hmacData, 33, Blob.toArray(index), 0, index.size());
       let hmacSha512 : Hmac.Hmac = Hmac.sha512(chaincode);
-      hmacSha512.writeArray(Array.freeze(hmacData));
-      let fullNode : [Nat8] = Blob.toArray(hmacSha512.sum());
+      hmacSha512.writeArray(key);
+      hmacSha512.writeArray(index.toArray());
+      let fullNode : [Nat8] = hmacSha512.sum().toArray();
 
       // Split HMAC output into two 32-byte sequences.
-      let left : [Nat8] = Array.tabulate<Nat8>(
-        32,
-        func(i) {
-          fullNode[i];
-        },
-      );
-      let right : [Nat8] = Array.tabulate<Nat8>(
-        32,
-        func(i) {
-          fullNode[i + 32];
-        },
-      );
+      let left = fullNode.sliceToArray(0, 32);
+      let right = fullNode.sliceToArray(32, 64);
 
       // Parse the left 32-bytes as an integer in the domain parameters of
       // secp2secp256k1 curve.
       let multiplicand : Nat = Common.readBE256(left, 0);
       if (multiplicand >= curve.r) {
         // This has probability lower than 1 in 2^127.
-        Debug.trap("derivation failed");
+        Runtime.trap("derivation failed");
       };
 
       switch (Jacobi.fromBytes(key, curve)) {
-        case (null) Debug.trap("derivation failed");
+        case (null) Runtime.trap("derivation failed");
         case (?parsedKey) {
           // Derive the child public key.
           switch (Jacobi.add(Jacobi.mulBase(multiplicand, curve), parsedKey)) {
-            case (#infinity(_)) Debug.trap("derivation failed");
+            case (#infinity(_)) Runtime.trap("derivation failed");
             case (childPublicKey) {
               return ExtendedPublicKey(
                 Jacobi.toBytes(childPublicKey, true),
@@ -95,11 +94,12 @@ module {
       };
     };
 
-    // convert pubkey to a P2WPKh (Segwit) Bitcoin address
+    /// Encode `key` as a mainnet P2WPKH (SegWit v0) Bitcoin address with
+    /// HRP `"bc"` (Bech32).
     public func pubkey_address() : Text {
       switch (Segwit.encode("bc", { version = 0; program = Hash.hash160(key) })) {
         case (#ok addr) return addr;
-        case (#err e) Debug.trap(e);
+        case (#err e) Runtime.trap(e);
       };
     };
   };

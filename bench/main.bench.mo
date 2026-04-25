@@ -1,22 +1,21 @@
-import Array "mo:base/Array";
-import Blob "mo:base/Blob";
-import Nat8 "mo:base/Nat8";
+import Array "mo:core/Array";
+import Blob "mo:core/Blob";
+import Nat8 "mo:core/Nat8";
 import Prim "mo:prim";
-import Principal "mo:base/Principal";
+import Principal "mo:core/Principal";
 
-import Bench "mo:bench";
+import Bench "mo:bench-helper";
 
 import CkBtcAddress "../src";
 
 module {
-  public func init() : Bench.Bench {
-    let bench = Bench.Bench();
-
-    bench.name("Address calculation");
-    bench.description("Calculate BTC deposit address for given account");
-
-    bench.rows(["Empty subaccount", "Set subaccount"]);
-    bench.cols(["Pre-set owner", "Set owner"]);
+  public func init() : Bench.V1 {
+    let schema : Bench.Schema = {
+      name = "Address calculation";
+      description = "Calculate BTC deposit address for given account";
+      rows = ["Empty subaccount", "Set subaccount"];
+      cols = ["Pre-set owner", "Set owner"];
+    };
 
     let addr = CkBtcAddress.Minter({
       public_key : Blob = "\02\22\04\7A\81\D4\F8\A0\67\03\1C\89\27\3D\24\1B\79\A5\A0\07\C0\4D\FA\F3\6D\07\96\3D\B0\B9\90\97\EB";
@@ -28,21 +27,19 @@ module {
 
     let subaccountAddressFunc = addr.deposit_addr_func(owner);
 
-    bench.runner(
-      func(row, col) {
-        let subaccount : ?Blob = switch (row) {
-          case "Empty subaccount" null;
-          case "Set subaccount" sa;
-          case _ Prim.trap("");
-        };
-        switch (col) {
-          case "Pre-set owner" ignore subaccountAddressFunc(subaccount);
-          case "Set owner" ignore addr.deposit_addr({ owner; subaccount });
-          case _ Prim.trap("");
-        };
-      }
-    );
+    func run(ri : Nat, ci : Nat) {
+      let subaccount : ?Blob = switch (ri) {
+        case 0 null;
+        case 1 sa;
+        case _ Prim.trap("");
+      };
+      switch (ci) {
+        case 0 ignore subaccountAddressFunc(subaccount);
+        case 1 ignore addr.deposit_addr({ owner; subaccount });
+        case _ Prim.trap("");
+      };
+    };
 
-    bench;
+    Bench.V1(schema, run);
   };
 };
