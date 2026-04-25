@@ -80,13 +80,23 @@ module {
   /// (`bc1...`).
   ///
   /// `key` must be the master xpubkey of the ckBTC minter canister you want
-  /// to mirror (e.g. mainnet ckBTC, testnet ckBTC, or a custom deployment).
-  /// It can be obtained via `fetchEcdsaKey` or hard-coded.
+  /// to mirror on Bitcoin mainnet (this module currently encodes `bc1...`
+  /// addresses only).
   ///
   /// Traps if `key.public_key` is not a valid SEC1-compressed secp256k1 point
   /// (33 bytes encoding a point on the curve).
   public class Minter(key : XPubKey) {
     let pk = Bip32.ExtendedPublicKey(key.public_key.toArray(), key.chain_code.toArray()).deriveChild("\01");
+
+    private func normalize_subaccount(subaccount : ?Blob) : Blob {
+      switch (subaccount) {
+        case (null) "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob;
+        case (?b) {
+          if (b.size() != 32) Runtime.trap("ckbtc-address: subaccount must be exactly 32 bytes");
+          b;
+        };
+      }
+    };
 
     /// Returns the mainnet P2WPKH Bitcoin deposit address (a `bc1...`
     /// Bech32 string) that the ckBTC minter assigns to the given ICRC-1
@@ -104,13 +114,7 @@ module {
     ///
     /// Traps if `account.subaccount` is `?b` with `b.size() != 32`.
     public func deposit_addr(account : Account) : Text {
-      let sub = switch (account.subaccount) {
-        case (null) "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob;
-        case (?b) {
-          if (b.size() != 32) Runtime.trap("ckbtc-address: subaccount must be exactly 32 bytes");
-          b;
-        };
-      };
+      let sub = normalize_subaccount(account.subaccount);
       [account.owner.toBlob(), sub]
       |> pk.derivePath(_)
       |> _.pubkey_address();
@@ -141,13 +145,7 @@ module {
     public func deposit_addr_func(owner : Principal) : ?Blob -> Text {
       let p1 = pk.deriveChild(owner.toBlob());
       func(subaccount : ?Blob) : Text {
-        let sub = switch (subaccount) {
-          case (null) "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob;
-          case (?b) {
-            if (b.size() != 32) Runtime.trap("ckbtc-address: subaccount must be exactly 32 bytes");
-            b;
-          };
-        };
+        let sub = normalize_subaccount(subaccount);
         p1.deriveChild(sub).pubkey_address();
       };
     };
