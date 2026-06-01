@@ -74,7 +74,9 @@ module {
   };
 
   public func new_minter(key : XPubKey) : Minter {
-    { pk = Bip32.new(key.public_key.toArray(), key.chain_code.toArray()).deriveChild("\01") };
+    {
+      pk = Bip32.new(key.public_key.toArray(), key.chain_code.toArray()).deriveChild("\01");
+    };
   };
 
   func normalize_subaccount(subaccount : ?Blob) : Blob {
@@ -84,7 +86,7 @@ module {
         if (b.size() != 32) Runtime.trap("ckbtc-address: subaccount must be exactly 32 bytes");
         b;
       };
-    }
+    };
   };
 
   /// Returns the mainnet P2WPKH Bitcoin deposit address (a `bc1...`
