@@ -69,10 +69,26 @@ module {
     subaccount : ?Blob;
   };
 
+  /// A ckBTC deposit-address derivator.
+  ///
+  /// Construction (via `new_minter`) performs one BIP32 child derivation
+  /// (with the constant single-byte index `"\01"`) to obtain the ckBTC
+  /// minter's account-derivation subtree. After that, every call to
+  /// `deposit_addr` performs two further child derivations (one for the
+  /// owner principal, one for the subaccount) and encodes the resulting
+  /// public key as a mainnet P2WPKH SegWit address (`bc1...`).
   public type Minter = {
     pk : Bip32.ExtendedPublicKey;
   };
 
+  /// Initializes a `Minter` from the minter's root extended public key.
+  ///
+  /// `key` must be the master xpubkey of the ckBTC minter canister you want
+  /// to mirror on Bitcoin mainnet (this module currently encodes `bc1...`
+  /// addresses only).
+  ///
+  /// Traps if `key.public_key` is not a valid SEC1-compressed secp256k1 point
+  /// (33 bytes encoding a point on the curve).
   public func new_minter(key : XPubKey) : Minter {
     {
       pk = Bip32.new(key.public_key.toArray(), key.chain_code.toArray()).deriveChild("\01");

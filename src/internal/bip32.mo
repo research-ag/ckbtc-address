@@ -24,11 +24,14 @@ module {
   public type Path = [Blob];
   let curve : Curves.Curve = Curves.secp256k1;
 
+  /// A BIP32 extended public key.
   public type ExtendedPublicKey = {
     key : [Nat8];
     chaincode : [Nat8];
   };
 
+  /// Creates a new `ExtendedPublicKey` from a 33-byte SEC1-compressed
+  /// public key and a 32-byte chain code.
   public func new(_key : [Nat8], _chaincode : [Nat8]) : ExtendedPublicKey {
     { key = _key; chaincode = _chaincode };
   };
