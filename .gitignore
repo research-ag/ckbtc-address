@@ -1,2 +1,11 @@
+.mops/
+.icp/
+mops.lock        # for libraries only — mops install reminds you
+node_modules/
+package.json
+package-lock.json
+.dfx/
+build/
+skills-lock.json
+.agents
 .idea
-.mops

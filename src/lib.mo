@@ -69,15 +69,19 @@ module {
     subaccount : ?Blob;
   };
 
-  /// A ckBTC deposit-address derivator initialized from the minter's root
-  /// extended public key.
+  /// A ckBTC deposit-address derivator.
   ///
-  /// Construction performs one BIP32 child derivation (with the constant
-  /// single-byte index `"\01"`) to obtain the ckBTC minter's account-derivation
-  /// subtree. After that, every call to `deposit_addr` performs two further
-  /// child derivations (one for the owner principal, one for the subaccount)
-  /// and encodes the resulting public key as a mainnet P2WPKH SegWit address
-  /// (`bc1...`).
+  /// Construction (via `new_minter`) performs one BIP32 child derivation
+  /// (with the constant single-byte index `"\01"`) to obtain the ckBTC
+  /// minter's account-derivation subtree. After that, every call to
+  /// `deposit_addr` performs two further child derivations (one for the
+  /// owner principal, one for the subaccount) and encodes the resulting
+  /// public key as a mainnet P2WPKH SegWit address (`bc1...`).
+  public type Minter = {
+    pk : Bip32.ExtendedPublicKey;
+  };
+
+  /// Initializes a `Minter` from the minter's root extended public key.
   ///
   /// `key` must be the master xpubkey of the ckBTC minter canister you want
   /// to mirror on Bitcoin mainnet (this module currently encodes `bc1...`
@@ -85,69 +89,71 @@ module {
   ///
   /// Traps if `key.public_key` is not a valid SEC1-compressed secp256k1 point
   /// (33 bytes encoding a point on the curve).
-  public class Minter(key : XPubKey) {
-    let pk = Bip32.ExtendedPublicKey(key.public_key.toArray(), key.chain_code.toArray()).deriveChild("\01");
-
-    private func normalize_subaccount(subaccount : ?Blob) : Blob {
-      switch (subaccount) {
-        case (null) "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob;
-        case (?b) {
-          if (b.size() != 32) Runtime.trap("ckbtc-address: subaccount must be exactly 32 bytes");
-          b;
-        };
-      }
+  public func new_minter(key : XPubKey) : Minter {
+    {
+      pk = Bip32.new(key.public_key.toArray(), key.chain_code.toArray()).deriveChild("\01");
     };
+  };
 
-    /// Returns the mainnet P2WPKH Bitcoin deposit address (a `bc1...`
-    /// Bech32 string) that the ckBTC minter assigns to the given ICRC-1
-    /// `account`.
-    ///
-    /// A `null` subaccount is treated as the 32-byte all-zero default
-    /// subaccount, matching ICRC-1 and ckBTC-minter conventions.
-    ///
-    /// ```motoko include=import
-    /// let addr = minter.deposit_addr({
-    ///   owner = Principal.fromText("aaaaa-aa");
-    ///   subaccount = null;
-    /// });
-    /// ```
-    ///
-    /// Traps if `account.subaccount` is `?b` with `b.size() != 32`.
-    public func deposit_addr(account : Account) : Text {
-      let sub = normalize_subaccount(account.subaccount);
-      [account.owner.toBlob(), sub]
-      |> pk.derivePath(_)
-      |> _.pubkey_address();
-    };
-
-    /// Returns a per-owner derivation function that maps subaccounts to
-    /// deposit addresses.
-    ///
-    /// This is an optimization for the common case of one fixed owner (e.g.
-    /// a service canister) deriving deposit addresses for many users
-    /// distinguished only by subaccount: the (relatively expensive) BIP32
-    /// child derivation for the owner principal is performed once, when
-    /// `deposit_addr_func` is called, and the returned closure only performs
-    /// the cheaper subaccount derivation per call.
-    ///
-    /// The returned function follows the same conventions as `deposit_addr`:
-    /// `null` is treated as the 32-byte all-zero default subaccount, and the
-    /// result is a mainnet P2WPKH `bc1...` address.
-    ///
-    /// ```motoko include=import
-    /// let derive = minter.deposit_addr_func(Principal.fromText("aaaaa-aa"));
-    /// let addr1 = derive(null);
-    /// let addr2 = derive(?("\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\01" : Blob));
-    /// ```
-    ///
-    /// The returned closure traps if it is called with `?b` where
-    /// `b.size() != 32`.
-    public func deposit_addr_func(owner : Principal) : ?Blob -> Text {
-      let p1 = pk.deriveChild(owner.toBlob());
-      func(subaccount : ?Blob) : Text {
-        let sub = normalize_subaccount(subaccount);
-        p1.deriveChild(sub).pubkey_address();
+  func normalize_subaccount(subaccount : ?Blob) : Blob {
+    switch (subaccount) {
+      case (null) "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00" : Blob;
+      case (?b) {
+        if (b.size() != 32) Runtime.trap("ckbtc-address: subaccount must be exactly 32 bytes");
+        b;
       };
+    };
+  };
+
+  /// Returns the mainnet P2WPKH Bitcoin deposit address (a `bc1...`
+  /// Bech32 string) that the ckBTC minter assigns to the given ICRC-1
+  /// `account`.
+  ///
+  /// A `null` subaccount is treated as the 32-byte all-zero default
+  /// subaccount, matching ICRC-1 and ckBTC-minter conventions.
+  ///
+  /// ```motoko include=import
+  /// let addr = minter.deposit_addr({
+  ///   owner = Principal.fromText("aaaaa-aa");
+  ///   subaccount = null;
+  /// });
+  /// ```
+  ///
+  /// Traps if `account.subaccount` is `?b` with `b.size() != 32`.
+  public func deposit_addr(self : Minter, account : Account) : Text {
+    let sub = normalize_subaccount(account.subaccount);
+    [account.owner.toBlob(), sub]
+    |> self.pk.derivePath(_)
+    |> _.pubkey_address();
+  };
+
+  /// Returns a per-owner derivation function that maps subaccounts to
+  /// deposit addresses.
+  ///
+  /// This is an optimization for the common case of one fixed owner (e.g.
+  /// a service canister) deriving deposit addresses for many users
+  /// distinguished only by subaccount: the (relatively expensive) BIP32
+  /// child derivation for the owner principal is performed once, when
+  /// `deposit_addr_func` is called, and the returned closure only performs
+  /// the cheaper subaccount derivation per call.
+  ///
+  /// The returned function follows the same conventions as `deposit_addr`:
+  /// `null` is treated as the 32-byte all-zero default subaccount, and the
+  /// result is a mainnet P2WPKH `bc1...` address.
+  ///
+  /// ```motoko include=import
+  /// let derive = minter.deposit_addr_func(Principal.fromText("aaaaa-aa"));
+  /// let addr1 = derive(null);
+  /// let addr2 = derive(?("\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\01" : Blob));
+  /// ```
+  ///
+  /// The returned closure traps if it is called with `?b` where
+  /// `b.size() != 32`.
+  public func deposit_addr_func(self : Minter, owner : Principal) : ?Blob -> Text {
+    let p1 = self.pk.deriveChild(owner.toBlob());
+    func(subaccount : ?Blob) : Text {
+      let sub = normalize_subaccount(subaccount);
+      p1.deriveChild(sub).pubkey_address();
     };
   };
 

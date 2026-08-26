@@ -1,12 +1,13 @@
-name: App build
+name: CI
+
 on:
   pull_request:
-    types: [synchronize, opened, reopened, ready_for_review, unlabeled]
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
-  build:
+  test:
+    name: Tests and Benchmarks
     runs-on: ubuntu-24.04
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -17,7 +18,7 @@ jobs:
       - name: Make sure moc is installed
         run: mops toolchain bin moc || mops toolchain use moc latest
 
-      - name: Show mops version
+      - name: Show versions
         run: |
           mops --version
           $(mops toolchain bin moc) --version
@@ -27,3 +28,20 @@ jobs:
 
       - name: Run mops bench
         run: mops bench
+
+  fmt:
+    name: Formatting Check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      - name: Prettier Check
+        run: |
+          npm install prettier prettier-plugin-motoko --no-save
+          npx prettier --plugin prettier-plugin-motoko --check '**/*.{mo,json,md}'

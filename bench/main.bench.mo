@@ -17,7 +17,7 @@ module {
       cols = ["Pre-set owner", "Set owner"];
     };
 
-    let addr = CkBtcAddress.Minter({
+    let addr = CkBtcAddress.new_minter({
       public_key : Blob = "\02\22\04\7A\81\D4\F8\A0\67\03\1C\89\27\3D\24\1B\79\A5\A0\07\C0\4D\FA\F3\6D\07\96\3D\B0\B9\90\97\EB";
       chain_code : Blob = "\82\1A\EB\B6\43\BD\97\D3\19\D2\FD\0B\2E\48\3D\4E\7D\E2\EA\90\39\FF\67\56\8B\69\3E\6A\BC\14\A0\3B";
     });
