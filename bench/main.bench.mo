@@ -23,7 +23,7 @@ module {
     });
 
     let owner : Principal = Principal.fromText("s7rux-5qw2w-h6o7j-dhwoh-xq4l2-xgl53-satjs-2eqwz-xgeex-a2vp2-yqe");
-    let sa : ?Blob = ?Blob.fromArray(Array.tabulate<Nat8>(32, func(n) = Nat8.fromIntWrap(n)));
+    let sa : ?Blob = ?(Array.tabulate<Nat8>(32, func(n) = Nat8.fromIntWrap(n))).toBlob();
 
     let subaccountAddressFunc = addr.deposit_addr_func(owner);
 

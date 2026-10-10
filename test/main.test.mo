@@ -3,6 +3,7 @@ import Nat8 "mo:core/Nat8";
 import Principal "mo:core/Principal";
 import VarArray "mo:core/VarArray";
 
+import Nat "mo:core/Nat";
 import CkBtcAddress "../src";
 
 // hardcoded keys for ckBtc minter canister
@@ -17,12 +18,12 @@ func user_to_subaccount(user : Principal) : Blob {
   assert l <= 31;
   let r = VarArray.repeat<Nat8>(0, 32);
   var i : Nat = 32 - l;
-  r[i - 1] := Nat8.fromNat(l);
-  for (v in b.vals()) {
+  r[i - 1] := l.toNat8();
+  for (v in b.values()) {
     r[i] := v;
     i += 1;
   };
-  Blob.fromVarArray(r);
+  r.toBlob();
 };
 
 // get deposit address for a user of the auction backend

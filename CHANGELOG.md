@@ -3,6 +3,9 @@
 ## 0.0.3
 
 - Converted API from class-based to static module (record type).
+- Bumped `core` dependency from `2.5.0` to `2.6.2` and `bitcoin` from `0.2.0` to `0.2.1`.
+- Added `[requirements] moc = "1.4.0"` (required by `core` 2.6).
+- Compiles warning-free with moc 2.0.0.
 
 ## 0.0.2
 

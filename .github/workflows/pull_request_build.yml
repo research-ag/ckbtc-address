@@ -26,6 +26,12 @@ jobs:
       - name: Run tests
         run: mops test
 
+      - name: Make sure pocket-ic is installed
+        run: mops toolchain bin pocket-ic
+
+      - name: Make sure wasm-opt is installed
+        run: mops toolchain bin wasm-opt
+
       - name: Run mops bench
         run: mops bench
 
