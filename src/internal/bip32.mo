@@ -42,7 +42,7 @@ module {
     var target : ExtendedPublicKey = self;
 
     // Derive the hierarchy of child keys.
-    for (childIndex in path.vals()) {
+    for (childIndex in path.values()) {
       target := deriveChild(target, childIndex);
     };
     target;

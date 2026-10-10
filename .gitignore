@@ -1,6 +1,7 @@
 .mops/
 .icp/
-mops.lock        # for libraries only — mops install reminds you
+# for libraries only — mops install reminds you
+mops.lock
 node_modules/
 package.json
 package-lock.json

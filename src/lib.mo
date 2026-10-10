@@ -122,9 +122,7 @@ module {
   /// Traps if `account.subaccount` is `?b` with `b.size() != 32`.
   public func deposit_addr(self : Minter, account : Account) : Text {
     let sub = normalize_subaccount(account.subaccount);
-    [account.owner.toBlob(), sub]
-    |> self.pk.derivePath(_)
-    |> _.pubkey_address();
+    self.pk.derivePath([account.owner.toBlob(), sub]).pubkey_address();
   };
 
   /// Returns a per-owner derivation function that maps subaccounts to

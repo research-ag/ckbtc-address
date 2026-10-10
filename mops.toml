@@ -7,7 +7,7 @@ keywords = [ "bitcoin", "key-derivation", "bip32", "ckbtc", "minter" ]
 license = "MIT"
 
 [dependencies]
-core = "2.6.1"
+core = "2.6.2"
 bitcoin = "0.2.1"
 
 [dev-dependencies]
@@ -15,5 +15,11 @@ test = "2.1.2"
 bench-helper = "0.0.3"
 
 [toolchain]
-moc = "1.14.1"
+moc = "2.0.0"
 pocket-ic = "15.0.0"
+wasm-opt = "133"
+
+[optimize]
+
+[requirements]
+moc = "1.4.0"
